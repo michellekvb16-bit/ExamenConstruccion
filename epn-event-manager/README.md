@@ -1,98 +1,89 @@
-<p align="center">
-  <a href="http://nestjs.com/" target="blank"><img src="https://nestjs.com/img/logo-small.svg" width="120" alt="Nest Logo" /></a>
-</p>
+# EPN Event Manager - Examen Construcción de Software
 
-[circleci-image]: https://img.shields.io/circleci/build/github/nestjs/nest/master?token=abc123def456
-[circleci-url]: https://circleci.com/gh/nestjs/nest
+Este proyecto es una API robusta construida con **NestJS** para la gestión de eventos con auditoría y trazabilidad. Ha sido refactorizado y estabilizado siguiendo los principios de ingeniería de software y aplicando los cuatro tipos de mantenimiento normados.
 
-  <p align="center">A progressive <a href="http://nodejs.org" target="_blank">Node.js</a> framework for building efficient and scalable server-side applications.</p>
-    <p align="center">
-<a href="https://www.npmjs.com/~nestjscore" target="_blank"><img src="https://img.shields.io/npm/v/@nestjs/core.svg" alt="NPM Version" /></a>
-<a href="https://www.npmjs.com/~nestjscore" target="_blank"><img src="https://img.shields.io/npm/l/@nestjs/core.svg" alt="Package License" /></a>
-<a href="https://www.npmjs.com/~nestjscore" target="_blank"><img src="https://img.shields.io/npm/dm/@nestjs/common.svg" alt="NPM Downloads" /></a>
-<a href="https://circleci.com/gh/nestjs/nest" target="_blank"><img src="https://img.shields.io/circleci/build/github/nestjs/nest/master" alt="CircleCI" /></a>
-<a href="https://discord.gg/G7Qnnhy" target="_blank"><img src="https://img.shields.io/badge/discord-online-brightgreen.svg" alt="Discord"/></a>
-<a href="https://opencollective.com/nest#backer" target="_blank"><img src="https://opencollective.com/nest/backers/badge.svg" alt="Backers on Open Collective" /></a>
-<a href="https://opencollective.com/nest#sponsor" target="_blank"><img src="https://opencollective.com/nest/sponsors/badge.svg" alt="Sponsors on Open Collective" /></a>
-  <a href="https://paypal.me/kamilmysliwiec" target="_blank"><img src="https://img.shields.io/badge/Donate-PayPal-ff3f59.svg" alt="Donate us"/></a>
-    <a href="https://opencollective.com/nest#sponsor"  target="_blank"><img src="https://img.shields.io/badge/Support%20us-Open%20Collective-41B883.svg" alt="Support us"></a>
-  <a href="https://twitter.com/nestframework" target="_blank"><img src="https://img.shields.io/twitter/follow/nestframework.svg?style=social&label=Follow" alt="Follow us on Twitter"></a>
-</p>
-  <!--[![Backers on Open Collective](https://opencollective.com/nest/backers/badge.svg)](https://opencollective.com/nest#backer)
-  [![Sponsors on Open Collective](https://opencollective.com/nest/sponsors/badge.svg)](https://opencollective.com/nest#sponsor)-->
+## 📋 Diagnóstico de Deuda Técnica (Fase 1)
 
-## Description
+El diseño original del CRUD presentaba las siguientes carencias estructurales que fueron identificadas y mitigadas:
 
-[Nest](https://github.com/nestjs/nest) framework TypeScript starter repository.
+1.  **Falta de Validaciones:** Los datos de entrada no eran saneados, permitiendo la persistencia de nulos o cadenas excesivamente largas (Propensidad a fallos de persistencia).
+2.  **Ausencia de Trazabilidad:** No existía un sistema de logs profesional. Las acciones ocurrían sin dejar rastro auditable (Falta de observabilidad).
+3.  **Bugs Críticos:** Encontrado un bug en la operación `DELETE` donde el evento no se persistía en la base de datos debido a la falta de `await` en la operación asíncrona.
+4.  **Inconsistencia de Datos:** El uso de formatos de fecha locales impedía una ordenación cronológica confiable en entornos distribuidos.
+5.  **Vulnerabilidades de Seguridad:** Endpoints expuestos sin ninguna restricción, permitiendo acceso no autorizado a la información de auditoría.
+6.  **Falta de Pruebas:** Cobertura de pruebas nula, lo que impedía validar cambios sin riesgo de regresiones.
 
-## Project setup
+---
 
-```bash
-$ npm install
+## 🛠️ Intervención Técnica (Mantenimientos)
+
+### 1. Mantenimiento Correctivo (Refactorización y Bugs)
+- **Corrección de Bugs:** Se reparó el flujo de `DELETE` asegurando la persistencia física de la acción.
+- **Logs Estructurados:** Implementación de un logger profesional basado en **Winston**.
+  - Niveles de severidad: `INFO`, `WARN`, `ERROR`.
+  - Trazabilidad: Cada acción registra marca de tiempo en formato **ISO 8601**.
+  - Salida dual: Consola colorizada para desarrollo y archivos (`logs/error.log`, `logs/combined.log`) para producción.
+
+### 2. Mantenimiento Adaptativo (Entorno Institucional)
+- **Seguridad por API-Key:** Restricción de acceso mediante el header `X-FIS-EPN-KEY`. Se implementó un `Guard` global que valida esta cabecera contra las variables de entorno.
+- **Configuración Externa:** Extracción de variables críticas (Puerto, API Key, Path de DB) hacia archivos `.env` utilizando `@nestjs/config`.
+
+### 3. Mantenimiento Perfectivo (Calidad y Documentación)
+- **Pruebas Unitarias Robustas:** Suite completa con **Jest** que valida las reglas de negocio, incluyendo la correcta selección del repositorio según la acción.
+- **Documentación Estandarizada:** Generación automática de especificación **OpenAPI (Swagger)**. Disponible en la ruta `/api`.
+- **Ordenación Cronológica:** Refactorización del método `findAll` para consolidar y ordenar eventos de múltiples tablas usando estándares temporales.
+
+### 4. Mantenimiento Preventivo (Programación Defensiva)
+- **Sanitización Rigurosa:** Uso de `class-validator` y `class-transformer` para validación exhaustiva de tipos, longitudes y obligatoriedad.
+- **Estructura Try-Catch Global:** Implementación de un `AllExceptionsFilter` que captura fallos inesperados y garantiza que el servidor no caiga, devolviendo respuestas estandarizadas.
+- **Pipes Globales:** Configuración de `ValidationPipe` con `whitelist: true` para prevenir inyección de datos maliciosos no definidos en los DTOs.
+
+---
+
+## 🚀 Instalación y Uso
+
+### Requisitos
+- Node.js (v18+)
+- npm
+
+### Configuración
+Copie el archivo de ejemplo o cree un `.env`:
+```env
+PORT=3000
+API_KEY=epn-fis-secret-key-2024
+DB_PATH=./db/events.sqlite
+NODE_ENV=development
 ```
 
-## Compile and run the project
-
+### Ejecutar
 ```bash
-# development
-$ npm run start
-
-# watch mode
-$ npm run start:dev
-
-# production mode
-$ npm run start:prod
+npm install
+npm run start:dev
 ```
 
-## Run tests
+### Documentación API
+Swagger UI: `http://localhost:3000/api`
 
+---
+
+## 🧪 Pruebas
 ```bash
-# unit tests
-$ npm run test
+# Ejecutar tests unitarios
+npm run test
 
-# e2e tests
-$ npm run test:e2e
-
-# test coverage
-$ npm run test:cov
+# Ver cobertura
+npm run test:cov
 ```
 
-## Deployment
+---
+**Autor:** Vicente Adrian Eguez Sarzosa
+**Materia:** Construcción de Software - GR2
+**Fecha:** 2. de junio de 2026
 
-When you're ready to deploy your NestJS application to production, there are some key steps you can take to ensure it runs as efficiently as possible. Check out the [deployment documentation](https://docs.nestjs.com/deployment) for more information.
+---
 
-If you are looking for a cloud-based platform to deploy your NestJS application, check out [Mau](https://mau.nestjs.com), our official platform for deploying NestJS applications on AWS. Mau makes deployment straightforward and fast, requiring just a few simple steps:
+## 📄 DOCUMENTACIÓN COMPLETA PARA EL EXAMEN
+Para una revisión detallada de cada punto de la rúbrica (Mantenimientos, Teoría, Diagnóstico), consulte el archivo:
+👉 [EXAMEN_DOCUMENTACION.md](EXAMEN_DOCUMENTACION.md)
 
-```bash
-$ npm install -g @nestjs/mau
-$ mau deploy
-```
 
-With Mau, you can deploy your application in just a few clicks, allowing you to focus on building features rather than managing infrastructure.
-
-## Resources
-
-Check out a few resources that may come in handy when working with NestJS:
-
-- Visit the [NestJS Documentation](https://docs.nestjs.com) to learn more about the framework.
-- For questions and support, please visit our [Discord channel](https://discord.gg/G7Qnnhy).
-- To dive deeper and get more hands-on experience, check out our official video [courses](https://courses.nestjs.com/).
-- Deploy your application to AWS with the help of [NestJS Mau](https://mau.nestjs.com) in just a few clicks.
-- Visualize your application graph and interact with the NestJS application in real-time using [NestJS Devtools](https://devtools.nestjs.com).
-- Need help with your project (part-time to full-time)? Check out our official [enterprise support](https://enterprise.nestjs.com).
-- To stay in the loop and get updates, follow us on [X](https://x.com/nestframework) and [LinkedIn](https://linkedin.com/company/nestjs).
-- Looking for a job, or have a job to offer? Check out our official [Jobs board](https://jobs.nestjs.com).
-
-## Support
-
-Nest is an MIT-licensed open source project. It can grow thanks to the sponsors and support by the amazing backers. If you'd like to join them, please [read more here](https://docs.nestjs.com/support).
-
-## Stay in touch
-
-- Author - [Kamil Myśliwiec](https://twitter.com/kammysliwiec)
-- Website - [https://nestjs.com](https://nestjs.com/)
-- Twitter - [@nestframework](https://twitter.com/nestframework)
-
-## License
-
-Nest is [MIT licensed](https://github.com/nestjs/nest/blob/master/LICENSE).
